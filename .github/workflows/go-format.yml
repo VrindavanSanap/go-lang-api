@@ -4,31 +4,50 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   gofmt:
-    name: Check formatting
+    name: Apply and commit formatting
     runs-on: ubuntu-latest
+    # Only run on 'push' events, not 'pull_request', to avoid
+    # creating new commits in a PR branch that might conflict.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout repository
+        # Use a token with 'contents: write' scope for pushing changes
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }} # Default token has push rights
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: stable
 
-      - name: Verify gofmt
+      - name: Apply gofmt
+        # This command applies formatting changes to files
+        run: gofmt -w .
+
+      - name: Check for changes
+        id: git-check
+        # This will exit 0 if there are no changes, or 1 if there are changes.
         run: |
-          set -euo pipefail
-          files="$(gofmt -l .)"
-          if [ -n "$files" ]; then
-            echo "The following files need gofmt applied:"
-            echo "$files"
-            exit 1
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "no_changes=true" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "no_changes=false" >> $GITHUB_OUTPUT
+            exit 0
           fi
-          echo "All Go files are properly formatted."
+        shell: bash
+
+      - name: Commit and push changes
+        # Only run this step if changes were detected in the previous step
+        if: steps.git-check.outputs.no_changes == 'false'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
+          git commit -m "Auto-apply gofmt formatting 🤖"
+          git push
