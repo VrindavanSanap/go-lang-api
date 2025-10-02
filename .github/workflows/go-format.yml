@@ -1,0 +1,34 @@
+name: Go Formatting
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  gofmt:
+    name: Check formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Verify gofmt
+        run: |
+          set -euo pipefail
+          files="$(gofmt -l .)"
+          if [ -n "$files" ]; then
+            echo "The following files need gofmt applied:"
+            echo "$files"
+            exit 1
+          fi
+          echo "All Go files are properly formatted."
