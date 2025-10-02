@@ -9,16 +9,19 @@ jobs:
   gofmt:
     name: Apply and commit formatting
     runs-on: ubuntu-latest
-    # Only run on 'push' events, not 'pull_request', to avoid
-    # creating new commits in a PR branch that might conflict.
+    # Only run on 'push' events to the 'main' branch
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    # Set permissions for the job to allow pushing changes back to the repo
+    permissions:
+      contents: write 
 
     steps:
       - name: Checkout repository
         # Use a token with 'contents: write' scope for pushing changes
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }} # Default token has push rights
+          token: ${{ secrets.GITHUB_TOKEN }} # Use the default token with push rights
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -31,7 +34,7 @@ jobs:
 
       - name: Check for changes
         id: git-check
-        # This will exit 0 if there are no changes, or 1 if there are changes.
+        # Check if gofmt actually modified any files
         run: |
           if [ -z "$(git status --porcelain)" ]; then
             echo "no_changes=true" >> $GITHUB_OUTPUT
@@ -43,7 +46,7 @@ jobs:
         shell: bash
 
       - name: Commit and push changes
-        # Only run this step if changes were detected in the previous step
+        # Only run this step if changes were detected
         if: steps.git-check.outputs.no_changes == 'false'
         run: |
           git config --global user.name 'github-actions[bot]'
