@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"log"
 )
@@ -10,10 +11,19 @@ import (
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	// Set the Content-Type header to indicate the response is plain text
 	w.Header().Set("Content-Type", "text/plain")
-
-	fmt.Printf("served a request\n")
+    	fmt.Printf("served a request\n")
 	// Write the response to the client
-	fmt.Fprintf(w, "Hello, World! This is a simple Go API.")
+	fmt.Fprintf(w, "Hello, World! This is a simple Go API. \n")
+ipAndPort := r.RemoteAddr
+	ip, _, err := net.SplitHostPort(ipAndPort)
+    if err != nil {
+        // Handle error, e.g., if the format is invalid
+        ip = ipAndPort // Fallback
+    }
+
+    fmt.Printf("IP (RemoteAddr) is: %s\n", ip)
+
+
 }
 
 func main() {
